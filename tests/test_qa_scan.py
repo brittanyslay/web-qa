@@ -146,5 +146,50 @@ class TestIgnoreGlobs(unittest.TestCase):
         self.assertLess(less["pages_scanned"], full["pages_scanned"])
 
 
+class TestLocalResolution(unittest.TestCase):
+    """resolve_local must not false-positive on query strings or protocol-relative URLs."""
+
+    def setUp(self):
+        import importlib.util, tempfile
+        spec = importlib.util.spec_from_file_location("qa_scan", SCAN)
+        self.m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.m)
+        self.tmp = tempfile.mkdtemp()
+        # a real asset on disk that links point at
+        with open(os.path.join(self.tmp, "resume.pdf"), "w") as fh:
+            fh.write("%PDF-1.4\n")
+        self.page = os.path.join(self.tmp, "index.html")
+
+    def test_query_string_is_stripped_before_resolving(self):
+        # cache-busted link to an existing file must resolve, not 404
+        _, kind = self.m.resolve_local(self.tmp, self.page, "resume.pdf?v=2")
+        self.assertEqual(kind, "file")
+
+    def test_query_only_href_is_self(self):
+        _, kind = self.m.resolve_local(self.tmp, self.page, "?utm_source=x")
+        self.assertEqual(kind, "self")
+
+    def test_protocol_relative_url_is_external(self):
+        _, kind = self.m.resolve_local(self.tmp, self.page, "//cdn.example.com/lib.js")
+        self.assertEqual(kind, "external")
+
+
+class TestTitleParsing(unittest.TestCase):
+    """An inline SVG <title> must not be concatenated onto the document title."""
+
+    def setUp(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("qa_scan", SCAN)
+        self.m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.m)
+
+    def test_svg_title_not_appended_to_document_title(self):
+        html = ('<html><head><title>Real Page Title</title></head><body>'
+                '<svg><title>Icon accessible label</title></svg></body></html>')
+        p = self.m.Parsed()
+        p.feed(html)
+        self.assertEqual(p.title, "Real Page Title")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -111,6 +111,7 @@ class Parsed(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.title = None
         self._in_title = False
+        self._title_seen = False
         self.metas = []           # list of dicts
         self.links_rel = []       # <link> tags
         self.anchors = []         # (href, text, attrs)
@@ -147,7 +148,9 @@ class Parsed(HTMLParser):
         if tag == "html":
             self.html_attrs = a
         elif tag == "title":
-            self._in_title = True
+            if not self._title_seen:
+                self._in_title = True
+                self._title_seen = True
         elif tag == "meta":
             self.metas.append(a)
         elif tag == "link":
@@ -463,8 +466,12 @@ def resolve_local(root, page_path, href):
     href, _frag = urldefrag(href)
     if not href:
         return None, "self"
-    if href.startswith(("http://", "https://", "mailto:", "tel:", "javascript:", "data:", "#")):
+    if href.startswith(("http://", "https://", "mailto:", "tel:", "javascript:", "data:", "#")) \
+       or href.startswith("//"):
         return None, "external"
+    href = href.split("?", 1)[0]          # drop query string (cache-busters etc.)
+    if not href:
+        return None, "self"
     base = root if href.startswith("/") else os.path.dirname(page_path)
     target = os.path.normpath(os.path.join(base, href.lstrip("/")))
     if os.path.isdir(target):
@@ -546,7 +553,7 @@ def scan_local(root, F, site):
                 continue
             tgt, k = resolve_local(root, fp, src)
             if k == "missing":
-                sev = BLOCKER if kind == "image" else BLOCKER
+                sev = BLOCKER  # a missing image, script, or stylesheet all 404
                 F.append(Finding(sev, "Functionality", pg.key,
                                  f"Missing {kind} file — will 404", src[:70]))
                 continue

@@ -1,6 +1,6 @@
 ---
 name: web-qa
-description: Run a professional, meticulous end-to-end QA pass on a website before it ships — and verify it after it goes live. Covers functionality, links, forms, responsive/cross-browser, accessibility (WCAG 2.2 AA), performance/Core Web Vitals, content and copy proofing, SEO and social metadata, analytics, security/privacy, deploy/DNS, and post-launch monitoring. Includes an automated scanner and a severity-graded punch list. Use when someone says "QA this site," "final check before launch," "pre-launch checklist," "is this ready to ship," "review my site before I deploy," "punch list," "why does this look broken," or after a deploy to confirm nothing regressed.
+description: Runs a professional, meticulous end-to-end QA pass on a website before it ships, and re-verifies it after it goes live. Covers functionality, links, forms, responsive/cross-browser, accessibility (WCAG 2.2 AA), performance/Core Web Vitals, content and copy proofing, SEO and social metadata, analytics, security/privacy, deploy/DNS, and post-launch monitoring. Includes an automated scanner and a severity-graded punch list. Use when someone says "QA this site," "final check before launch," "pre-launch checklist," "is this ready to ship," "review my site before I deploy," "punch list," "why does this look broken," or after a deploy to confirm nothing regressed.
 ---
 
 # Web QA — Ship Check
