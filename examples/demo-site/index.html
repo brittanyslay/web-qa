@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <title>Home</title>
+  <meta name="description" content="Too short.">
+</head>
+<body>
+  <h1>Welcome to Your Company Here</h1>
+  <h3>We skipped a heading level</h3>
+
+  <img src="hero.jpg">
+  <img src="missing-image.png" alt="A photo that does not exist">
+
+  <a href="/about/">About</a>
+  <a href="/pricing.html">Pricing</a>
+  <a href="#nonexistent-section">Jump to section</a>
+  <a href="http://example.com/insecure">Insecure link</a>
+  <a href="https://example.com" target="_blank">New tab, no rel</a>
+  <a href="http://localhost:3000/preview">Preview build</a>
+  <a href="/contact.html">click here</a>
+
+  <form action="http://example.com/submit" method="post">
+    <input type="email" placeholder="Your email">
+    <button></button>
+  </form>
+
+  <div id="dupe"></div><div id="dupe"></div>
+
+  <!-- The credential-leak fixture is generated, not committed:
+       see generate-fixtures.py / leaked-key.html -->
+</body>
+</html>

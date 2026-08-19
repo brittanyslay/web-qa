@@ -1,0 +1,21 @@
+# Drop this in .github/workflows/ of YOUR site repo to block a deploy on QA blockers.
+name: web-qa
+
+on: [push, pull_request]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      # If your site needs a build step, run it first and scan the output dir.
+      # - run: npm ci && npm run build
+
+      - name: Fetch the scanner
+        run: curl -sSL -o qa-scan.py https://raw.githubusercontent.com/brittanyslay/web-qa/main/scripts/qa-scan.py
+
+      - name: QA scan (fails the build on blockers)
+        run: python3 qa-scan.py ./dist --ignore 'drafts/*'

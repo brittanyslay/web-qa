@@ -1,0 +1,8 @@
+# generated fixtures — see examples/demo-site/generate-fixtures.py
+examples/demo-site/hero.jpg
+examples/demo-site/leaked-key.html
+
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
