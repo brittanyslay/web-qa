@@ -26,6 +26,17 @@
 
   <div id="dupe"></div><div id="dupe"></div>
 
+  <!-- Analytics/tag fixtures: a dead GA3 tag, GA4 loaded twice, and a pixel with no consent -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DEMO123456"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DEMO123456"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+    gtag('js',new Date());gtag('config','G-DEMO123456');</script>
+  <script src="https://www.google-analytics.com/analytics.js"></script>
+  <script>ga('create','UA-000000-1','auto');ga('send','pageview');</script>
+  <script>!function(f,b,e,v,n,t,s){/* Meta Pixel, no consent gate */
+    n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    }(window,document);fbq('init','123456789012345');fbq('track','PageView');</script>
+
   <!-- The credential-leak fixture is generated, not committed:
        see generate-fixtures.py / leaked-key.html -->
 </body>

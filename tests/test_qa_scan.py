@@ -191,5 +191,45 @@ class TestTitleParsing(unittest.TestCase):
         self.assertEqual(p.title, "Real Page Title")
 
 
+class TestAnalyticsTags(unittest.TestCase):
+    """Gate 8: detect analytics/marketing tags and the mistakes that break them."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.data, _ = scan(DEMO)
+        cls.f = cls.data["findings"]
+        cls.about = os.path.join("about", "index.html")
+
+    def _find(self, page, needle, sev=None):
+        return [x for x in self.f
+                if x["page"] == page
+                and needle.lower() in x["issue"].lower()
+                and (sev is None or x["severity"] == sev)]
+
+    def test_detects_ga4(self):
+        self.assertTrue(self._find("index.html", "Google Analytics 4"))
+
+    def test_flags_dead_universal_analytics_as_major(self):
+        self.assertTrue(self._find("index.html", "Universal Analytics", "MAJOR"))
+
+    def test_flags_duplicate_ga4_load(self):
+        self.assertTrue(self._find("index.html", "more than once", "MINOR"))
+
+    def test_detects_meta_pixel(self):
+        self.assertTrue(self._find("index.html", "Meta (Facebook) Pixel"))
+
+    def test_flags_pixel_without_consent(self):
+        self.assertTrue(self._find("index.html", "no consent mechanism", "MINOR"))
+
+    def test_clean_page_reports_consent(self):
+        self.assertTrue(self._find(self.about, "Consent mechanism"))
+
+    def test_clean_page_has_no_tag_warnings(self):
+        noisy = [x for x in self.f
+                 if x["page"] == self.about and x["gate"] == "Analytics"
+                 and x["severity"] in ("BLOCKER", "MAJOR", "MINOR")]
+        self.assertEqual(noisy, [], f"Tag check invented warnings on the clean page: {noisy}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-qa-scan.py — mechanical pre-launch scanner for static sites and live URLs.
+qa-scan.py - mechanical pre-launch scanner for static sites and live URLs.
 
 Catches the ~40% of QA findings a script can see. Everything else is in the
 gate checklists (references/01..11). A clean scan is NOT a passed QA.
@@ -74,7 +74,7 @@ SECRET_PATTERNS = [
     (r"(?i)(api[_-]?key|secret|password|passwd|token)\s*[:=]\s*[\"'][^\"'\s]{16,}[\"']",
                                                         "Possible hardcoded credential"),
 ]
-# (pattern, description, severity) — patterns must be specific enough not to fire
+# (pattern, description, severity) - patterns must be specific enough not to fire
 # on legitimate prose. "your company" appears in real copy; "Your Company Here" does not.
 PLACEHOLDER_PATTERNS = [
     (r"(?i)lorem ipsum|dolor sit amet",            "Lorem ipsum placeholder text", BLOCKER),
@@ -277,10 +277,10 @@ def check_page(pg, F, site):
         if intentional:
             add(NOTE, "SEO", "noindex present (expected on this page type)", f"{page}: {robots}")
         else:
-            add(BLOCKER, "SEO", "Page is set to NOINDEX — will not appear in search", robots)
+            add(BLOCKER, "SEO", "Page is set to NOINDEX - will not appear in search", robots)
 
     if not pg.meta(name="viewport"):
-        add(BLOCKER, "Responsive", "Missing viewport meta — site will not render correctly on mobile")
+        add(BLOCKER, "Responsive", "Missing viewport meta - site will not render correctly on mobile")
     else:
         vp = pg.meta(name="viewport")
         if "user-scalable=no" in vp.replace(" ", "") or "maximum-scale=1" in vp.replace(" ", ""):
@@ -302,11 +302,11 @@ def check_page(pg, F, site):
     og = {k: pg.meta(prop=f"og:{k}") for k in ("title", "description", "image", "url")}
     missing_og = [k for k, v in og.items() if not v]
     if len(missing_og) == 4:
-        add(MAJOR, "SEO", "No Open Graph tags — link shares will look broken")
+        add(MAJOR, "SEO", "No Open Graph tags - link shares will look broken")
     elif missing_og:
         add(MINOR, "SEO", f"Incomplete Open Graph: missing {', '.join(missing_og)}")
     if og.get("image") and not og["image"].startswith(("http://", "https://")):
-        add(MAJOR, "SEO", "og:image is not an absolute URL — most platforms will ignore it", og["image"])
+        add(MAJOR, "SEO", "og:image is not an absolute URL - most platforms will ignore it", og["image"])
     if not pg.meta(name="twitter:card"):
         add(MINOR, "SEO", "No twitter:card meta")
 
@@ -338,7 +338,7 @@ def check_page(pg, F, site):
             dupes.add(i)
         seen.add(i)
     if dupes:
-        add(MAJOR, "Functionality", f"Duplicate id attributes ({len(dupes)}) — breaks anchors, labels & JS",
+        add(MAJOR, "Functionality", f"Duplicate id attributes ({len(dupes)}) - breaks anchors, labels & JS",
             ", ".join(sorted(dupes)[:8]))
 
     # ---- images
@@ -354,7 +354,7 @@ def check_page(pg, F, site):
             add(MAJOR, "Functionality", "Image with no src", str(img)[:60])
         if ("width" not in img or "height" not in img) and "style" not in img and \
            not src.lower().endswith(".svg"):
-            add(MINOR, "Performance", "Image without width/height — causes layout shift (CLS)", label)
+            add(MINOR, "Performance", "Image without width/height - causes layout shift (CLS)", label)
         if "loading" not in img:
             add(NOTE, "Performance", "Consider loading=\"lazy\" on below-fold image", label)
 
@@ -370,7 +370,7 @@ def check_page(pg, F, site):
             add(MINOR, "Functionality", "javascript: href", href[:60])
         if href in ("#", ""):
             if text:
-                add(MINOR, "Functionality", "Placeholder link (href=\"#\") — goes nowhere", text[:50])
+                add(MINOR, "Functionality", "Placeholder link (href=\"#\") - goes nowhere", text[:50])
         if not acc.strip() and not P_img_inside(a):
             add(MAJOR, "A11y", "Link with no accessible text", href[:60])
         if text.lower().strip(" .!»>→") in VAGUE_LINK_TEXT:
@@ -409,7 +409,7 @@ def check_page(pg, F, site):
             add(MAJOR, "A11y/Forms", "Placeholder used as the only label", named)
     for f in P.forms:
         if not f.get("action") and not any(s.get("src", "") for s in P.scripts):
-            add(MAJOR, "Forms", "Form with no action and no JS handler — submissions go nowhere")
+            add(MAJOR, "Forms", "Form with no action and no JS handler - submissions go nowhere")
         if (f.get("action") or "").startswith("http://"):
             add(BLOCKER, "Security", "Form posts over insecure http://", f.get("action", "")[:60])
 
@@ -455,6 +455,81 @@ def check_page(pg, F, site):
     # page weight (local only)
     if pg.size > 300_000:
         add(MINOR, "Performance", f"HTML document is {pg.size/1024:.0f} KB (large)")
+
+    # ---- 8. analytics & marketing tags
+    check_tags(pg, F)
+
+
+# ------------------------------------------------------------------ analytics & tags
+# Marketing/analytics trackers, and the mistakes that quietly break the data or
+# the compliance story: a dead GA3 tag still on the page, the same GA4 property
+# loaded twice (double-counted pageviews), and pixels that fire with no consent
+# mechanism anywhere on the page. Detection is signature-based over raw HTML  - 
+# it reports what is present, and never invents a blocker out of a tracker.
+def check_tags(pg, F):
+    page, html = pg.key, (pg.html or "")
+    low = html.lower()
+    add = lambda s, m, d="": F.append(Finding(s, "Analytics", page, m, d))
+
+    # -- Google Analytics 4
+    ga4_ids = sorted(set(re.findall(r"G-[A-Z0-9]{7,12}", html)))
+    ga4_lib = len(re.findall(r"googletagmanager\.com/gtag/js", low))
+    if ga4_ids:
+        add(NOTE, "Google Analytics 4 present", ", ".join(ga4_ids[:3]))
+        if ga4_lib > 1:
+            add(MINOR, "GA4 gtag.js loaded more than once - pageviews may double-count",
+                f"{ga4_lib} includes")
+
+    # -- Google Tag Manager
+    gtm_ids = sorted(set(re.findall(r"GTM-[A-Z0-9]{5,8}", html)))
+    if gtm_ids or "googletagmanager.com/gtm.js" in low:
+        add(NOTE, "Google Tag Manager present", ", ".join(gtm_ids[:2]) or "GTM")
+        if ga4_ids:
+            add(NOTE, "Both GTM and a hardcoded GA4 tag are present - confirm you are "
+                      "not double-tagging GA4 through GTM as well")
+
+    # -- Universal Analytics (GA3) - shut down July 2024, should be gone
+    ua = sorted(set(re.findall(r"UA-\d{4,10}-\d{1,4}", html)))
+    if ua or "google-analytics.com/analytics.js" in low or "google-analytics.com/ga.js" in low:
+        add(MAJOR, "Universal Analytics (GA3) tag present - GA3 stopped processing data "
+                   "in July 2024; remove it or migrate to GA4", ", ".join(ua[:2]))
+
+    # -- Google Ads remarketing
+    aw = sorted(set(re.findall(r"AW-\d{9,12}", html)))
+    if aw:
+        add(NOTE, "Google Ads tag present", ", ".join(aw[:2]))
+
+    # -- consent mode / a consent-management platform
+    has_consent = bool(re.search(r"""gtag\(\s*['"]consent['"]""", html)) or bool(
+        re.search(r"(?i)cookiebot|onetrust|osano|usercentrics|cookieconsent|termly|"
+                  r"iubenda|klaro|civiccookie|quantcast", html))
+    if has_consent:
+        add(NOTE, "Consent mechanism detected (consent mode or a CMP)")
+
+    # -- marketing / behavioural pixels that typically require consent in the EU/UK
+    pixels = []
+    fb = re.search(r"fbq\(\s*['\"]init['\"]\s*,\s*['\"](\d{6,})['\"]", html)
+    if fb or "connect.facebook.net" in low:
+        pixels.append(("Meta (Facebook) Pixel", fb.group(1) if fb else ""))
+    li = re.search(r"_linkedin_partner_id\s*=\s*['\"]?(\d{4,})", html)
+    if li or "snap.licdn.com" in low:
+        pixels.append(("LinkedIn Insight Tag", li.group(1) if li else ""))
+    if "static.ads-twitter.com" in low or re.search(r"\btwq\(", html):
+        pixels.append(("X (Twitter) Pixel", ""))
+    if "analytics.tiktok.com" in low or re.search(r"\bttq\.(page|load|track)\b", html):
+        pixels.append(("TikTok Pixel", ""))
+    if "static.hotjar.com" in low or re.search(r"\bhjid\b", html):
+        pixels.append(("Hotjar", ""))
+    for name, pid in pixels:
+        add(NOTE, f"{name} present", pid)
+    if pixels and not has_consent:
+        add(MINOR, "Tracking pixel loads with no consent mechanism detected on the page - "
+                   "a GDPR / ePrivacy risk in the EU and UK",
+            ", ".join(n for n, _ in pixels))
+
+    # -- nothing at all (informational; some sites intend this)
+    if not (ga4_ids or gtm_ids or ua or aw or pixels):
+        add(NOTE, "No analytics or tag manager detected on this page")
 
 
 def P_img_inside(a):
@@ -534,7 +609,7 @@ def scan_local(root, F, site):
             target, kind = resolve_local(root, fp, href)
             if kind == "missing":
                 F.append(Finding(BLOCKER, "Functionality", pg.key,
-                                 "Broken internal link — target does not exist", href[:70]))
+                                 "Broken internal link - target does not exist", href[:70]))
             elif kind == "self" and frag:
                 if frag not in pg.p.ids and frag not in [x.get("name", "") for x in
                                                          [an["attrs"] for an in pg.p.anchors]]:
@@ -557,7 +632,7 @@ def scan_local(root, F, site):
             if k == "missing":
                 sev = BLOCKER  # a missing image, script, or stylesheet all 404
                 F.append(Finding(sev, "Functionality", pg.key,
-                                 f"Missing {kind} file — will 404", src[:70]))
+                                 f"Missing {kind} file - will 404", src[:70]))
                 continue
             if tgt and os.path.exists(tgt) and os.path.isfile(tgt):
                 sz = os.path.getsize(tgt)
@@ -566,7 +641,7 @@ def scan_local(root, F, site):
                 if kind == "image" and os.path.splitext(tgt)[1].lower() in IMG_EXT:
                     if sz > 1_000_000:
                         F.append(Finding(BLOCKER, "Performance", pg.key,
-                                         f"Image is {sz/1_048_576:.1f} MB — will destroy mobile load time", name))
+                                         f"Image is {sz/1_048_576:.1f} MB - will destroy mobile load time", name))
                     elif sz > 400_000:
                         F.append(Finding(MAJOR, "Performance", pg.key,
                                          f"Image is {sz/1024:.0f} KB (target <200 KB)", name))
@@ -613,14 +688,14 @@ def scan_local(root, F, site):
                                                            "db.sql", "backup.zip")
             if secret_ish:
                 F.append(Finding(BLOCKER, "Security", site_page,
-                                 f"{bad} is in the scanned directory — it must never be deployed"))
+                                 f"{bad} is in the scanned directory - it must never be deployed"))
             elif is_source_repo:
                 F.append(Finding(MAJOR, "Security", site_page,
-                                 f"{bad} present — this looks like a source repo, so confirm your "
+                                 f"{bad} present - this looks like a source repo, so confirm your "
                                  f"deploy step excludes it"))
             else:
                 F.append(Finding(BLOCKER, "Security", site_page,
-                                 f"{bad} present in the build output — do not deploy it"))
+                                 f"{bad} present in the build output - do not deploy it"))
     return len(pages)
 
 
@@ -631,7 +706,7 @@ _SSL_UNVERIFIED = False
 
 def ssl_context(F=None):
     """Build a verifying context. If the local trust store is broken (common with
-    python.org builds on macOS), fall back to unverified and SAY SO — never report
+    python.org builds on macOS), fall back to unverified and SAY SO - never report
     a local cert-store problem as a site defect."""
     global _SSL_CTX, _SSL_UNVERIFIED
     if _SSL_CTX is not None:
@@ -650,7 +725,7 @@ def ssl_context(F=None):
         _SSL_UNVERIFIED = True
         if F is not None:
             F.append(Finding(NOTE, "Environment", "(scanner)",
-                             "Local Python trust store cannot verify certificates — TLS validation "
+                             "Local Python trust store cannot verify certificates - TLS validation "
                              "was SKIPPED by the scanner. Verify the cert manually: "
                              "openssl s_client -connect HOST:443 | openssl x509 -noout -dates"))
     except Exception:
@@ -776,10 +851,10 @@ def scan_url(start, F, site, max_pages=25):
                     if code in (403, 429, 999) and not internal:
                         F.append(Finding(NOTE, "Functionality", pg.key,
                                          f"External link returned {code} to the scanner "
-                                         f"(likely bot protection) — verify by hand", absu[:80]))
+                                         f"(likely bot protection) - verify by hand", absu[:80]))
                     else:
                         F.append(Finding(BLOCKER if internal else MAJOR, "Functionality", pg.key,
-                                         f"Broken link — HTTP {code}", absu[:80]))
+                                         f"Broken link - HTTP {code}", absu[:80]))
             except Exception:
                 F.append(Finding(MINOR, "Functionality", pg.key,
                                  "Link could not be verified (timeout/DNS)", absu[:80]))
@@ -808,7 +883,7 @@ def report(F, pages, target, as_json):
     counts = {s: sum(1 for f in F if f.sev == s) for s in (BLOCKER, MAJOR, MINOR, NOTE)}
     W = 78
     print("=" * W)
-    print(f" QA SCAN — {target}")
+    print(f" QA SCAN - {target}")
     print(f" {pages} page(s) scanned · "
           f"{counts[BLOCKER]} blocker · {counts[MAJOR]} major · "
           f"{counts[MINOR]} minor · {counts[NOTE]} note")
@@ -840,7 +915,7 @@ def report(F, pages, target, as_json):
 
     print("\n" + "=" * W)
     if counts[BLOCKER]:
-        print(" RESULT: DO NOT LAUNCH — blockers open.")
+        print(" RESULT: DO NOT LAUNCH - blockers open.")
     elif counts[MAJOR]:
         print(" RESULT: Fix majors before launch.")
     else:
