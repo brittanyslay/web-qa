@@ -15,6 +15,34 @@ The difference between an amateur site and a professional one usually isn't the 
 
 ---
 
+## See it work
+
+Run it on a directory or a URL and you get a severity-graded punch list, not a vague "looks good":
+
+```
+==============================================================================
+ QA SCAN — ./my-site
+ 3 page(s) scanned · 10 blocker · 12 major · 17 minor · 8 note
+==============================================================================
+
+--- BLOCKER ------------------------------------------------------------------
+[BLOCKER] Functionality    Broken internal link — target does not exist
+                            in: index.html
+                              · /pricing.html
+[BLOCKER] Performance      Image is 1.1 MB — will destroy mobile load time
+                            in: index.html
+                              · hero.jpg
+[BLOCKER] Security         Stripe live secret key appears in page source
+                            in: leaked-key.html
+                              · sk_live_51H8xQ2eZvKYlo2C…
+[BLOCKER] SEO              robots.txt blocks the entire site from search engines
+[BLOCKER] Responsive       Missing viewport meta — site will not render on mobile
+```
+
+Exit code is non-zero when blockers exist, so it drops straight into CI. That's real output from the bundled demo site (`examples/demo-site/`); run `python3 scripts/qa-scan.py examples/demo-site` to reproduce it.
+
+---
+
 ## Quick start
 
 ```bash
@@ -125,7 +153,7 @@ python3 qa-scan.py <dir|url> [--json] [--max-pages N] [--ignore GLOB]
 python3 tests/test_qa_scan.py
 ```
 
-25 tests: that the scanner finds every defect planted in the demo site, that it invents nothing on the clean page, and that `robots.txt` group parsing behaves.
+29 tests: that the scanner finds every defect planted in the demo site, that it invents nothing on the clean page (including cache-busted links and inline SVG titles), and that `robots.txt` group parsing behaves.
 
 ## Contributing
 
@@ -135,4 +163,6 @@ Found a check that should be here, or a false positive? Open an issue or a PR. N
 
 MIT — see [LICENSE](LICENSE).
 
-Built by [Brittany Slay](https://brittanyslay.com).
+---
+
+Built by [Brittany Slay](https://brittanyslay.com), a B2B marketing leader who builds AI-native tools. More free Claude skills at [brittanyslay.com/skills](https://brittanyslay.com/skills). Shipping something and want a second set of eyes on the whole funnel, not just the QA? [Get in touch](https://brittanyslay.com/#contact).
