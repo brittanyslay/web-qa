@@ -21,5 +21,10 @@
     <label for="nm">Your name</label>
     <input type="text" id="nm" name="name" autocomplete="name">
   </main>
+  <!-- A correct analytics setup: GA4 once, with consent mode gating it. No warnings expected. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CLEAN12345"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+    gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied'});
+    gtag('js',new Date());gtag('config','G-CLEAN12345');</script>
 </body>
 </html>

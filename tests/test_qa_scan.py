@@ -146,5 +146,90 @@ class TestIgnoreGlobs(unittest.TestCase):
         self.assertLess(less["pages_scanned"], full["pages_scanned"])
 
 
+class TestLocalResolution(unittest.TestCase):
+    """resolve_local must not false-positive on query strings or protocol-relative URLs."""
+
+    def setUp(self):
+        import importlib.util, tempfile
+        spec = importlib.util.spec_from_file_location("qa_scan", SCAN)
+        self.m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.m)
+        self.tmp = tempfile.mkdtemp()
+        # a real asset on disk that links point at
+        with open(os.path.join(self.tmp, "resume.pdf"), "w") as fh:
+            fh.write("%PDF-1.4\n")
+        self.page = os.path.join(self.tmp, "index.html")
+
+    def test_query_string_is_stripped_before_resolving(self):
+        # cache-busted link to an existing file must resolve, not 404
+        _, kind = self.m.resolve_local(self.tmp, self.page, "resume.pdf?v=2")
+        self.assertEqual(kind, "file")
+
+    def test_query_only_href_is_self(self):
+        _, kind = self.m.resolve_local(self.tmp, self.page, "?utm_source=x")
+        self.assertEqual(kind, "self")
+
+    def test_protocol_relative_url_is_external(self):
+        _, kind = self.m.resolve_local(self.tmp, self.page, "//cdn.example.com/lib.js")
+        self.assertEqual(kind, "external")
+
+
+class TestTitleParsing(unittest.TestCase):
+    """An inline SVG <title> must not be concatenated onto the document title."""
+
+    def setUp(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("qa_scan", SCAN)
+        self.m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.m)
+
+    def test_svg_title_not_appended_to_document_title(self):
+        html = ('<html><head><title>Real Page Title</title></head><body>'
+                '<svg><title>Icon accessible label</title></svg></body></html>')
+        p = self.m.Parsed()
+        p.feed(html)
+        self.assertEqual(p.title, "Real Page Title")
+
+
+class TestAnalyticsTags(unittest.TestCase):
+    """Gate 8: detect analytics/marketing tags and the mistakes that break them."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.data, _ = scan(DEMO)
+        cls.f = cls.data["findings"]
+        cls.about = os.path.join("about", "index.html")
+
+    def _find(self, page, needle, sev=None):
+        return [x for x in self.f
+                if x["page"] == page
+                and needle.lower() in x["issue"].lower()
+                and (sev is None or x["severity"] == sev)]
+
+    def test_detects_ga4(self):
+        self.assertTrue(self._find("index.html", "Google Analytics 4"))
+
+    def test_flags_dead_universal_analytics_as_major(self):
+        self.assertTrue(self._find("index.html", "Universal Analytics", "MAJOR"))
+
+    def test_flags_duplicate_ga4_load(self):
+        self.assertTrue(self._find("index.html", "more than once", "MINOR"))
+
+    def test_detects_meta_pixel(self):
+        self.assertTrue(self._find("index.html", "Meta (Facebook) Pixel"))
+
+    def test_flags_pixel_without_consent(self):
+        self.assertTrue(self._find("index.html", "no consent mechanism", "MINOR"))
+
+    def test_clean_page_reports_consent(self):
+        self.assertTrue(self._find(self.about, "Consent mechanism"))
+
+    def test_clean_page_has_no_tag_warnings(self):
+        noisy = [x for x in self.f
+                 if x["page"] == self.about and x["gate"] == "Analytics"
+                 and x["severity"] in ("BLOCKER", "MAJOR", "MINOR")]
+        self.assertEqual(noisy, [], f"Tag check invented warnings on the clean page: {noisy}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
