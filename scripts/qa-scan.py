@@ -15,6 +15,8 @@ Exit codes: 0 = no blockers, 1 = blockers found, 2 = usage/runtime error.
 Stdlib only. No installs.
 """
 
+# Author: Brittany Slay (https://brittanyslay.com) · Noncommercial use only (PolyForm NC 1.0.0) · Required Notice: Copyright Brittany Slay
+
 import sys, os, re, json, argparse
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlparse, urldefrag
