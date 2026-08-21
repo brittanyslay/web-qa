@@ -7,7 +7,9 @@
 ![python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
 
-![A qa-scan report: zero blockers, two majors, minors, and a new Analytics & Tags section showing GA4 present with consent mode, a Meta Pixel with no consent gate, and no GTM or LinkedIn Insight tag](docs/scan-report.png)
+![A real qa-scan.py terminal run against the repo's own demo-site fixture: 10 blockers including a leaked Stripe key, an oversized hero image, and a broken internal link, plus majors like a stale GA3 tag, ending in a DO NOT LAUNCH result](docs/scan-report.png)
+
+*An actual terminal run, not a mockup - `python3 scripts/qa-scan.py examples/demo-site` produces exactly this.*
 
 The difference between an amateur site and a professional one usually isn't the build. It's what got caught before the client saw it. This is that catch, written down.
 
