@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.2 - 2026-08-20
+
+Pulled the README preview image for now while all the public repos' preview images get reconsidered together. The image file is still in the repo, just not linked from the README.
+
+
 ## v1.0.1 - 2026-08-20
 
 Replaced the README preview image. It was a hand-illustrated mockup (a generic gradient top bar and squircle icon over invented scan results) that didn't correspond to a real run of the scanner. Swapped for an actual terminal screenshot of `python3 scripts/qa-scan.py examples/demo-site` against the repo's own demo-site fixture - real output, not a mockup.
