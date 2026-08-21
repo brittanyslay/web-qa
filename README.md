@@ -9,6 +9,8 @@
 
 The difference between an amateur site and a professional one usually isn't the build. It's what got caught before the client saw it. This is that catch, written down.
 
+![The web-qa scanner output: a crawl of a demo site graded into blocker, major, and minor findings (a broken link, an exposed Stripe key, oversized images), ending in a FAIL with a non-zero exit code.](docs/web-qa.jpg)
+
 ```
 ==============================================================================
  QA SCAN - ./my-site
