@@ -12,7 +12,7 @@ Usage:
     python3 qa-scan.py <url> --max-pages 40  # crawl depth cap (default 25)
 
 Exit codes: 0 = no blockers, 1 = blockers found, 2 = usage/runtime error.
-Stdlib only. No installs.
+Standard library only, so there is nothing to install.
 """
 
 # Author: Brittany Slay (https://brittanyslay.com) · Noncommercial use only (PolyForm NC 1.0.0) · Required Notice: Copyright Brittany Slay

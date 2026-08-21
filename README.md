@@ -48,7 +48,7 @@ As a Claude Code skill:
 git clone https://github.com/brittanyslay/web-qa.git ~/.claude/skills/web-qa
 ```
 
-Or just clone it and run the scanner directly - no install, no dependencies, Python 3.9+:
+Or just clone it and run the scanner directly. It needs nothing beyond Python 3.9+ and installs nothing:
 
 ```bash
 git clone https://github.com/brittanyslay/web-qa.git
@@ -136,7 +136,7 @@ python3 qa-scan.py <dir|url> [--json] [--max-pages N] [--ignore GLOB]
 
 Honest limits, because a tool that overstates its coverage is worse than no tool:
 
-- **It cannot see.** Layout breaks, contrast failures, ugly wrapping, and broken responsive behaviour need eyes on a real device. That's gates 3–5.
+- **It cannot see.** Layout breaks, contrast failures, ugly wrapping, and broken responsive behaviour need eyes on a real device. That's gates 3-5.
 - **It cannot click.** Whether a form actually delivers to an inbox is the single most expensive thing to get wrong, and only a real submission proves it. That's gate 2.
 - **It does not run JavaScript.** Client-rendered content is invisible to it - scan your *built* output, or the live URL.
 - **It does not replace axe/Lighthouse.** It catches the a11y and performance issues visible in markup; run the real auditors too.
@@ -149,7 +149,7 @@ A clean scan is not a passed QA. It's the first 20 minutes of one.
 python3 tests/test_qa_scan.py
 ```
 
-29 tests: that the scanner finds every defect planted in the demo site, that it invents nothing on the clean page (including cache-busted links and inline SVG titles), and that `robots.txt` group parsing behaves.
+36 tests: that the scanner finds every defect planted in the demo site, that it invents nothing on the clean page (including cache-busted links and inline SVG titles), that `robots.txt` group parsing behaves, and that the analytics and tag checks fire correctly.
 
 Found a check that should be here, or a false positive? Open an issue or a PR. New checks should come with a fixture in `examples/demo-site/` and a test.
 

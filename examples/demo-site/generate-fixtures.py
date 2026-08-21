@@ -8,7 +8,7 @@ Creates the fixtures the demo site needs but that must NOT live in git:
 
 The key is assembled from fragments at runtime. Committing a literal that
 matches a real credential pattern gets your push blocked by GitHub secret
-scanning — which is exactly the failure this scanner exists to catch, so we
+scanning - which is exactly the failure this scanner exists to catch, so we
 practise what we preach.
 
 Run automatically by the test suite; run by hand to scan the demo yourself.

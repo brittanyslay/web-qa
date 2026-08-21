@@ -1,14 +1,14 @@
-# Gate 8 — Analytics, Tracking & Consent
+# Gate 8 - Analytics, Tracking & Consent
 
 **Launching without working analytics means launching blind for however long it takes to notice.** Verify with real data, in real time, before go-live.
 
 ## Installation
-- [ ] Analytics (GA4 or alternative) installed on **every** page, once — not twice
+- [ ] Analytics (GA4 or alternative) installed on **every** page, once - not twice
 - [ ] Real-time report shows your own test visit
-- [ ] Correct property/stream ID — not the agency's, not a previous client's, not the staging property
+- [ ] Correct property/stream ID - not the agency's, not a previous client's, not the staging property
 - [ ] Tag Manager container published (not left in preview/draft)
 - [ ] No duplicate tags firing (check with Tag Assistant / GA debug view)
-- [ ] Internal traffic filtered (your IP, the client's office) — but **verify the filter isn't excluding real users**
+- [ ] Internal traffic filtered (your IP, the client's office) - but **verify the filter isn't excluding real users**
 - [ ] Data retention setting configured
 - [ ] Time zone and currency set correctly
 
@@ -33,7 +33,7 @@
 
 ## Consent & privacy compliance
 - [ ] Consent banner appears for regions that require it, before non-essential tags fire
-- [ ] Rejecting cookies **actually blocks** the tags — verify in the network tab, don't trust the plugin
+- [ ] Rejecting cookies **actually blocks** the tags - verify in the network tab, don't trust the plugin
 - [ ] Consent Mode / equivalent configured so analytics degrades gracefully
 - [ ] Cookie policy lists the cookies actually set
 - [ ] Preference center lets a user change their mind

@@ -1,4 +1,4 @@
-# Gate 10 — Deploy, DNS & Infrastructure
+# Gate 10 - Deploy, DNS & Infrastructure
 
 ## Pre-deploy
 - [ ] Working tree committed; build runs clean with no errors or warnings you haven't read
@@ -9,7 +9,7 @@
 - [ ] Deploy during a low-traffic window if the site is live and busy
 
 ## Domain & DNS
-- [ ] Domain registered to the **client**, with them as owner/admin — and it isn't expiring soon
+- [ ] Domain registered to the **client**, with them as owner/admin - and it isn't expiring soon
 - [ ] Auto-renew on; registrar contact email is monitored
 - [ ] Nameservers pointed correctly, propagation complete (check from more than one network)
 - [ ] A/AAAA/CNAME records correct
@@ -23,7 +23,7 @@
 - [ ] **SPF** record present and includes every sender (host, form service, ESP, CRM)
 - [ ] **DKIM** configured and passing
 - [ ] **DMARC** record published (start at `p=none` and monitor)
-- [ ] MX records intact — a DNS change must not break the client's email
+- [ ] MX records intact - a DNS change must not break the client's email
 - [ ] Transactional email (form notifications, receipts) tested to Gmail, Outlook, and iCloud; checked in spam
 - [ ] From/reply-to addresses are real, monitored, and on the client's domain
 
@@ -43,7 +43,7 @@
 - [ ] Top-traffic and top-backlink pages preserved or redirected with care
 - [ ] Old sitemap kept temporarily so crawlers find the redirects
 - [ ] Search Console: change-of-address if the domain changed; new sitemap submitted
-- [ ] Content parity check — nothing important dropped in the move
+- [ ] Content parity check - nothing important dropped in the move
 - [ ] Analytics annotated with the launch date so the traffic change is explainable
 
 ## Handoff

@@ -1,16 +1,16 @@
-# Gate 11 — Post-Launch Verification
+# Gate 11 - Post-Launch Verification
 
 Launch isn't the finish line. This is where real traffic finds what you missed.
 
 ## First 15 minutes (before you tell anyone it's live)
 - [ ] Load the production URL in a **private window** on a phone and a desktop
-- [ ] Hard-refresh / clear cache — you're seeing the new build, not your cached copy
+- [ ] Hard-refresh / clear cache - you're seeing the new build, not your cached copy
 - [ ] Homepage renders correctly, images loaded, no console errors
 - [ ] Click through the primary conversion path end to end and receive the confirmation email
-- [ ] `robots.txt` and a page-source check for `noindex` (again — verify on production)
+- [ ] `robots.txt` and a page-source check for `noindex` (again - verify on production)
 - [ ] HTTPS padlock on, all four URL variants resolving to the canonical
 - [ ] Analytics real-time shows your visit
-- [ ] Spot-check 3–5 key inner pages and the 404
+- [ ] Spot-check 3-5 key inner pages and the 404
 - [ ] Ask one person on a different network/device to load it and tell you what they see
 
 ## First 24 hours
@@ -46,5 +46,5 @@ Launch isn't the finish line. This is where real traffic finds what you missed.
 |---|---|
 | Weekly | Uptime, forms still delivering, error log |
 | Monthly | Broken links, CMS/plugin/dependency updates, backups, analytics review |
-| Quarterly | Full re-run of gates 1–9, content accuracy (prices, staff, hours), SSL/domain expiry |
+| Quarterly | Full re-run of gates 1-9, content accuracy (prices, staff, hours), SSL/domain expiry |
 | Annually | Design/content refresh review, accessibility re-audit, copyright year, credential rotation |

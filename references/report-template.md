@@ -1,9 +1,9 @@
-# QA Report — [Site Name]
+# QA Report - [Site Name]
 
 **Date:** YYYY-MM-DD · **QA by:** [name] · **Build/commit:** [ref] · **Environment:** [staging | production URL]
 
 ## Verdict
-> 🟢 **GO** — no blockers · 🟡 **GO WITH RISK** — majors open, client accepts · 🔴 **NO-GO** — blockers open
+> 🟢 **GO** - no blockers · 🟡 **GO WITH RISK** - majors open, client accepts · 🔴 **NO-GO** - blockers open
 
 **Recommendation:** [one sentence]
 
@@ -43,7 +43,7 @@
 
 ## Findings
 
-### 🔴 Blockers — must fix before launch
+### 🔴 Blockers - must fix before launch
 | # | Gate | Page / viewport | Issue | Evidence | Fix |
 |---|---|---|---|---|---|
 | B1 | | | | screenshot/repro | |
