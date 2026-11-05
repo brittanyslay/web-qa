@@ -13,6 +13,9 @@ practise what we preach.
 
 Run automatically by the test suite; run by hand to scan the demo yourself.
 """
+
+# Author: Brittany Slay (https://brittanyslay.com) · Noncommercial use only (PolyForm NC 1.0.0) · Required Notice: Copyright Brittany Slay
+
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))

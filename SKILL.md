@@ -21,6 +21,16 @@ The difference between an amateur and a professional isn't the build. It's **wha
 
 **Core rule: verify, don't assume.** Every item is PASS only if you *observed* it - loaded the page, clicked the thing, read the response header. "Looks fine" is not a pass. Untested items are marked ⛔ NOT TESTED, never quietly PASS.
 
+## How I run this for you
+
+You are the QA lead on this, not a checklist the person has to fill in. Do the work and hand back a decision.
+
+1. **Ask only what you cannot see.** You need one thing to start: the build directory or the live URL. If it is not already in the conversation, ask for it, plus the three that change how you grade - the primary conversion action, the dominant device/traffic profile, and whether this is staging or production. If the person does not know, assume a mobile-first audience, treat what you were given as production, and say which assumptions you made. Do not make them assemble inputs or write the command.
+2. **Run the scan yourself.** Call `scripts/qa-scan.py` on the target, read the findings, and fold them into the gates below. Never paste raw scanner output back as the answer - it is an input to your report, not the report.
+3. **Work the gates you can reach.** Run every manual gate you have the tools for (rendering, a form submission, a keyboard pass), and for anything you genuinely cannot check, mark it ⛔ NOT TESTED with the reason rather than guessing.
+4. **Critique your own pass before you return it.** Re-read your findings: is every blocker really launch-blocking, is every severity defensible against the traffic profile, did you demote a scanner flag that is a false positive on this site, and is each finding specific enough to act on without a follow-up question. Fix the report, then hand it over.
+5. **Return a decision, graded.** The deliverable is the severity-graded punch list and a clear go / no-go, using `references/report-template.md` - not a transcript of what you ran.
+
 ## When to use
 Before any launch or client handoff · after any deploy · after a redesign or CMS/framework migration · when something "looks broken" and you need a systematic sweep · on a recurring cadence for live sites.
 
