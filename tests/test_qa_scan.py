@@ -94,6 +94,9 @@ class TestFindsPlantedDefects(unittest.TestCase):
     def test_finds_sitewide_robots_block(self):
         self.assertIn("robots.txt blocks the entire site", self.issues())
 
+    def test_finds_missing_charset(self):
+        self.assertIn("meta charset", self.issues("index.html").lower())
+
 
 class TestDoesNotInventFindings(unittest.TestCase):
     """The clean page must produce no blockers and no majors."""
@@ -111,6 +114,11 @@ class TestDoesNotInventFindings(unittest.TestCase):
     def test_no_majors_on_clean_page(self):
         bad = [x["issue"] for x in self.clean if x["severity"] == "MAJOR"]
         self.assertEqual(bad, [], f"False-positive majors: {bad}")
+
+    def test_no_charset_warning_on_clean_page(self):
+        # the clean page declares <meta charset>, so the charset check must stay quiet
+        bad = [x["issue"] for x in self.clean if "charset" in x["issue"].lower()]
+        self.assertEqual(bad, [], f"False-positive charset warning: {bad}")
 
 
 class TestRobotsParsing(unittest.TestCase):
@@ -229,6 +237,70 @@ class TestAnalyticsTags(unittest.TestCase):
                  if x["page"] == self.about and x["gate"] == "Analytics"
                  and x["severity"] in ("BLOCKER", "MAJOR", "MINOR")]
         self.assertEqual(noisy, [], f"Tag check invented warnings on the clean page: {noisy}")
+
+
+class TestDuplicateMetadata(unittest.TestCase):
+    """Duplicate titles/descriptions are a site-level problem; flag them only when
+    the same non-empty value is shared across more than one page."""
+
+    def setUp(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("qa_scan", SCAN)
+        self.m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.m)
+
+    def _run(self, pages_meta):
+        F = []
+        self.m.check_duplicate_metadata(pages_meta, F)
+        return [(f.sev, f.msg) for f in F]
+
+    def test_flags_duplicate_title(self):
+        out = self._run([("a.html", "Home", "desc a"),
+                         ("b.html", "Home", "desc b")])
+        self.assertTrue(any("Duplicate <title>" in m and s == "MAJOR" for s, m in out))
+
+    def test_flags_duplicate_description(self):
+        out = self._run([("a.html", "A", "Same description"),
+                         ("b.html", "B", "Same description")])
+        self.assertTrue(any("Duplicate meta description" in m and s == "MINOR" for s, m in out))
+
+    def test_title_match_is_case_and_space_insensitive(self):
+        out = self._run([("a.html", "Our  Team", "x"),
+                         ("b.html", "our team", "y")])
+        self.assertTrue(any("Duplicate <title>" in m for _, m in out))
+
+    def test_unique_titles_produce_nothing(self):
+        out = self._run([("a.html", "Home", "d1"), ("b.html", "About", "d2")])
+        self.assertEqual(out, [])
+
+    def test_blank_values_are_ignored(self):
+        # two pages that both leave fields empty are not a duplicate
+        out = self._run([("a.html", "", ""), ("b.html", "", "")])
+        self.assertEqual(out, [])
+
+
+class TestCLIHardening(unittest.TestCase):
+    """The scanner must fail cleanly (exit 2), never with a traceback, on bad input."""
+
+    def _run(self, *args):
+        ensure_fixtures()
+        return subprocess.run([sys.executable, SCAN, *args], capture_output=True, text=True)
+
+    def test_missing_target_is_usage_error(self):
+        r = subprocess.run([sys.executable, SCAN], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
+
+    def test_nonexistent_directory_exits_2(self):
+        r = self._run(os.path.join(ROOT, "no-such-dir-xyz"))
+        self.assertEqual(r.returncode, 2)
+
+    def test_zero_max_pages_exits_2(self):
+        r = self._run("https://example.com", "--max-pages", "0")
+        self.assertEqual(r.returncode, 2)
+
+    def test_negative_timeout_exits_2(self):
+        r = self._run("https://example.com", "--timeout", "-5")
+        self.assertEqual(r.returncode, 2)
 
 
 if __name__ == "__main__":

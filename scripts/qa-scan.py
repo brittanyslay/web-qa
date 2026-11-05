@@ -10,6 +10,7 @@ Usage:
     python3 qa-scan.py <https://url>         # crawl a live site (same origin)
     python3 qa-scan.py <dir> --json          # machine-readable output
     python3 qa-scan.py <url> --max-pages 40  # crawl depth cap (default 25)
+    python3 qa-scan.py <url> --timeout 30    # slower host: raise the per-request timeout
 
 Exit codes: 0 = no blockers, 1 = blockers found, 2 = usage/runtime error.
 Standard library only, so there is nothing to install.
@@ -32,6 +33,12 @@ SKIP_DIRS = {"node_modules", ".git", ".next", "dist-cache", "__pycache__",
              ".venv", "venv", ".cache", "vendor", ".netlify", ".vercel"}
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".svg", ".ico"}
+
+# Network safety rails for URL mode. DEFAULT_TIMEOUT is overridable with --timeout;
+# MAX_FETCH_BYTES caps how much of any one response the scanner will buffer, so an
+# accidental multi-gigabyte body can never exhaust memory.
+DEFAULT_TIMEOUT = 15
+MAX_FETCH_BYTES = 12_000_000
 
 def robots_blocks_everything(txt):
     """True only if the wildcard (or Googlebot) group disallows the whole site.
@@ -290,6 +297,17 @@ def check_page(pg, F, site):
     if not lang:
         add(MAJOR, "A11y", "Missing lang attribute on <html>")
 
+    # charset: a missing or late declaration risks garbled characters (mojibake).
+    # Matches both the modern <meta charset> and the legacy http-equiv form.
+    has_charset = any(
+        "charset" in m or
+        (m.get("http-equiv", "").lower() == "content-type"
+         and "charset" in m.get("content", "").lower())
+        for m in P.metas)
+    if not has_charset:
+        add(MINOR, "SEO", "No <meta charset> declared - risk of garbled characters; "
+                          "put <meta charset=\"utf-8\"> first in <head>")
+
     rels = [l.get("rel", "").lower() for l in P.links_rel]
     if not any("canonical" in r for r in rels):
         add(MINOR, "SEO", "No canonical link")
@@ -537,6 +555,39 @@ def P_img_inside(a):
     return "img" in a["text"].lower() or bool(a["attrs"].get("class"))
 
 
+def check_duplicate_metadata(pages_meta, F):
+    """Flag identical titles or meta descriptions reused across distinct pages.
+    Duplicate titles and descriptions are a real ranking problem that no single
+    page can reveal - it only shows up once you look at the site as a whole.
+
+    pages_meta is a list of (page_key, title, description). Normalisation is
+    case-insensitive and whitespace-collapsed; blank values are ignored, so a
+    site of pages that each legitimately leave a field empty is never flagged.
+    """
+    titles, descs = {}, {}
+    for key, title, desc in pages_meta:
+        t = " ".join((title or "").split()).lower()
+        d = " ".join((desc or "").split()).lower()
+        if t:
+            titles.setdefault(t, []).append((key, (title or "").strip()))
+        if d:
+            descs.setdefault(d, []).append((key, (desc or "").strip()))
+    for norm, items in titles.items():
+        hit = sorted({k for k, _ in items})
+        if len(hit) > 1:
+            example = items[0][1][:60]
+            F.append(Finding(MAJOR, "SEO", "(site)",
+                             f"Duplicate <title> on {len(hit)} pages - hurts search ranking",
+                             f'"{example}" on {", ".join(hit[:4])}{"…" if len(hit) > 4 else ""}'))
+    for norm, items in descs.items():
+        hit = sorted({k for k, _ in items})
+        if len(hit) > 1:
+            example = items[0][1][:60]
+            F.append(Finding(MINOR, "SEO", "(site)",
+                             f"Duplicate meta description on {len(hit)} pages",
+                             f'"{example}" on {", ".join(hit[:4])}{"…" if len(hit) > 4 else ""}'))
+
+
 # ------------------------------------------------------------------ local mode
 def resolve_local(root, page_path, href):
     """Return (abs_path_or_None, kind) for an internal href."""
@@ -696,6 +747,8 @@ def scan_local(root, F, site):
             else:
                 F.append(Finding(BLOCKER, "Security", site_page,
                                  f"{bad} present in the build output - do not deploy it"))
+    check_duplicate_metadata(
+        [(pg.key, pg.p.title, pg.meta(name="description")) for pg in pages.values()], F)
     return len(pages)
 
 
@@ -733,14 +786,16 @@ def ssl_context(F=None):
     return _SSL_CTX
 
 
-def fetch(url, timeout=15, method="GET"):
+def fetch(url, timeout=None, method="GET"):
+    timeout = DEFAULT_TIMEOUT if timeout is None else timeout
     req = Request(url, method=method, headers={
         "User-Agent": "Mozilla/5.0 (compatible; qa-scan/1.0; +pre-launch QA)",
         "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
         "Accept-Encoding": "gzip",
     })
     with urlopen(req, timeout=timeout, context=ssl_context()) as r:
-        body = r.read() if method == "GET" else b""
+        # Read at most MAX_FETCH_BYTES so a runaway response cannot exhaust memory.
+        body = r.read(MAX_FETCH_BYTES) if method == "GET" else b""
         if body and r.headers.get("Content-Encoding", "").lower() == "gzip":
             import gzip
             try:
@@ -761,6 +816,7 @@ def scan_url(start, F, site, max_pages=25):
     origin = "{0.scheme}://{0.netloc}".format(urlparse(start))
     queue, seen, count = [start], set(), 0
     checked_links = {}
+    crawl_meta = []
 
     try:
         st, hdrs, _ = fetch(origin, method="GET")
@@ -819,6 +875,7 @@ def scan_url(start, F, site, max_pages=25):
         html = body.decode("utf-8", "replace")
         pg = Page(urlparse(url).path or "/", html, len(body), base_url=url)
         check_page(pg, F, site)
+        crawl_meta.append((pg.key, pg.p.title, pg.meta(name="description")))
 
         for a in pg.p.anchors:
             href = (a["attrs"].get("href") or "").strip()
@@ -858,6 +915,7 @@ def scan_url(start, F, site, max_pages=25):
             except Exception:
                 F.append(Finding(MINOR, "Functionality", pg.key,
                                  "Link could not be verified (timeout/DNS)", absu[:80]))
+    check_duplicate_metadata(crawl_meta, F)
     return count
 
 
@@ -925,15 +983,27 @@ def report(F, pages, target, as_json):
     return 1 if counts[BLOCKER] else 0
 
 
-def main():
+def run():
+    global DEFAULT_TIMEOUT
     ap = argparse.ArgumentParser(description="Mechanical pre-launch QA scanner")
     ap.add_argument("target", help="local site directory or https:// URL")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     ap.add_argument("--max-pages", type=int, default=25, help="crawl cap for URL mode")
+    ap.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
+                    help=f"per-request network timeout in seconds, URL mode "
+                         f"(default {DEFAULT_TIMEOUT})")
     ap.add_argument("--ignore", action="append", default=[], metavar="GLOB",
                     help="skip paths matching this glob (repeatable). A .qaignore file "
                          "in the site root is also read, one glob per line.")
     args = ap.parse_args()
+
+    if args.max_pages < 1:
+        print("--max-pages must be 1 or greater", file=sys.stderr)
+        sys.exit(2)
+    if args.timeout <= 0:
+        print("--timeout must be greater than 0", file=sys.stderr)
+        sys.exit(2)
+    DEFAULT_TIMEOUT = args.timeout
 
     F, site = [], {}
     site["ignore"] = list(args.ignore)
@@ -947,10 +1017,29 @@ def main():
             sys.exit(2)
         qi = os.path.join(root, ".qaignore")
         if os.path.exists(qi):
-            site["ignore"] += [l.strip() for l in open(qi)
-                               if l.strip() and not l.startswith("#")]
+            try:
+                with open(qi, encoding="utf-8", errors="replace") as fh:
+                    site["ignore"] += [l.strip() for l in fh
+                                       if l.strip() and not l.startswith("#")]
+            except OSError:
+                pass
         pages = scan_local(root, F, site)
     sys.exit(report(F, pages, t, args.json))
+
+
+def main():
+    """Wrap run() so an unexpected error exits 2 with a clean message rather than
+    a traceback, keeping the documented exit-code contract (0/1/2)."""
+    try:
+        run()
+    except SystemExit:
+        raise
+    except KeyboardInterrupt:
+        print("\nqa-scan: interrupted", file=sys.stderr)
+        sys.exit(2)
+    except Exception as e:
+        print(f"qa-scan: unexpected error: {e}", file=sys.stderr)
+        sys.exit(2)
 
 
 if __name__ == "__main__":

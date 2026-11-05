@@ -81,7 +81,7 @@ The scanner checks the mechanical layer:
 |---|---|
 | **Links** | broken internal links, dead anchors, missing image/CSS/JS files, `http://` links, `target="_blank"` without `rel="noopener"`, vague link text |
 | **Security** | Stripe/AWS/GitHub/Slack/Netlify tokens and private keys in source, insecure form actions, mixed content, `.env`/`.git`/`.DS_Store` in the deploy directory, missing security headers |
-| **SEO** | missing or over-length titles and descriptions, `noindex` in production, `X-Robots-Tag`, site-wide `robots.txt` blocks, canonical, Open Graph and Twitter cards, soft 404s |
+| **SEO** | missing or over-length titles and descriptions, duplicate titles/descriptions reused across pages, missing `<meta charset>`, `noindex` in production, `X-Robots-Tag`, site-wide `robots.txt` blocks, canonical, Open Graph and Twitter cards, soft 404s |
 | **Accessibility** | missing `alt`, unlabelled form fields, placeholder-as-label, buttons and links with no accessible name, heading-order skips, missing `lang`, zoom-blocking viewports, untitled iframes, autoplay with sound |
 | **Performance** | oversized images, missing `width`/`height` (CLS), page weight, uncompressed responses, oversized bundles |
 | **Content** | lorem ipsum, unfilled template tokens, unrendered `{{variables}}`, TODO/FIXME in visible copy, dev and staging URLs left in the markup |
@@ -123,13 +123,14 @@ Exit code is `1` if blockers were found - so it drops straight into CI (see [`ex
 **Options:**
 
 ```
-python3 qa-scan.py <dir|url> [--json] [--max-pages N] [--ignore GLOB]
+python3 qa-scan.py <dir|url> [--json] [--max-pages N] [--timeout S] [--ignore GLOB]
 ```
 
 | Flag | |
 |---|---|
 | `--json` | machine-readable output for CI or dashboards |
 | `--max-pages` | crawl cap in URL mode (default 25) |
+| `--timeout S` | per-request network timeout in seconds, URL mode (default 15) |
 | `--ignore GLOB` | skip paths - repeatable, also read from a `.qaignore` file in the site root |
 
 ### What it deliberately does not do
@@ -149,7 +150,7 @@ A clean scan is not a passed QA. It's the first 20 minutes of one.
 python3 tests/test_qa_scan.py
 ```
 
-36 tests: that the scanner finds every defect planted in the demo site, that it invents nothing on the clean page (including cache-busted links and inline SVG titles), that `robots.txt` group parsing behaves, and that the analytics and tag checks fire correctly.
+47 tests: that the scanner finds every defect planted in the demo site, that it invents nothing on the clean page (including cache-busted links and inline SVG titles), that `robots.txt` group parsing behaves, that the analytics and tag checks fire correctly, that duplicate-metadata detection only fires across pages, and that bad input fails cleanly with exit code 2 instead of a traceback.
 
 Found a check that should be here, or a false positive? Open an issue or a PR. New checks should come with a fixture in `examples/demo-site/` and a test.
 
